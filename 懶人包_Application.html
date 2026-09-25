@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>懶人包 - shawn的提醒記帳簡易軟體</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bgDark: '#080808',
+                        cardDark: '#141414',
+                        cardInner: '#1e1e20',
+                        borderDark: '#26262a',
+                        textMuted: '#8e8e93',
+                        q1Color: '#ff453a',
+                        q2Color: '#ffd60a',
+                        q3Color: '#64d2ff',
+                        q4Color: '#8e8e93'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #080808;
+            color: #f2f2f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        ::-webkit-scrollbar { width: 0px; }
+    </style>
+</head>
+<body class="bg-bgDark text-slate-100 min-h-screen flex flex-col items-center justify-between pb-20 antialiased">
+
+    <div class="w-full max-w-md flex flex-col min-h-screen relative shadow-2xl bg-bgDark border-x border-borderDark/40">
+        
+        <!-- Header Section with exact white beanbag couch icon -->
+        <header class="p-4 pt-5 bg-bgDark/90 backdrop-blur-md sticky top-0 z-30 flex justify-between items-center border-b border-borderDark/30">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-cardInner flex items-center justify-center text-xl text-white border border-borderDark shadow-inner">
+                    <i class="fa-solid fa-couch"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white leading-tight">懶人包</h1>
+                    <p class="text-xs text-textMuted mt-0.5">shawn的提醒記帳簡易軟體</p>
+                </div>
+            </div>
+            <button onclick="requestNotificationPermission()" class="px-3.5 py-1.5 rounded-xl bg-cardInner text-xs font-medium text-slate-200 border border-borderDark hover:bg-slate-800 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-mobile-screen text-slate-400"></i>
+                釘選
+            </button>
+        </header>
+
+        <div class="px-4 pt-2 pb-3">
+            <div class="bg-cardDark border border-borderDark rounded-2xl p-4 shadow-lg grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <p class="text-xs text-textMuted font-medium mb-1">日均上限</p>
+                    <p class="text-base font-extrabold text-white" id="dash-daily-limit">$5,000</p>
+                </div>
+                <div class="border-l border-borderDark">
+                    <p class="text-xs text-textMuted font-medium mb-1">今日支出</p>
+                    <p class="text-base font-extrabold text-white" id="dash-today-expense">$180</p>
+                </div>
+                <div class="border-l border-borderDark">
+                    <p class="text-xs text-textMuted font-medium mb-1">待辦剩餘</p>
+                    <p class="text-base font-extrabold text-white" id="dash-pending-count">4 項</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 px-4 space-y-5 overflow-y-auto pb-6">
+
+            <section id="tab-reminders" class="space-y-4">
+                <div class="flex justify-between items-center pt-1">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells-large text-slate-300"></i>
+                        事項提醒
+                    </h2>
+                    <button onclick="openTaskModal()" class="bg-white text-black font-bold text-xs px-4 py-2 rounded-full transition hover:bg-slate-200 active:scale-95 shadow-md">
+                        ＋ 新增事項
+                    </button>
+                </div>
+
+                <!-- 4 Quadrants Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Q1 -->
+                    <div class="bg-cardDark border border-red-500/20 rounded-2xl p-3 flex flex-col min-h-[170px]">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <span class="text-xs font-bold text-q1Color flex items-center gap-1.5">🔴 重要又緊急</span>
+                            <button onclick="openTaskModal('q1')" class="text-textMuted hover:text-white text-xs">＋</button>
+                        </div>
+                        <div id="list-q1" class="space-y-2 flex-1"></div>
+                    </div>
+
+                    <!-- Q2 -->
+                    <div class="bg-cardDark border border-amber-500/20 rounded-2xl p-3 flex flex-col min-h-[170px]">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <span class="text-xs font-bold text-q2Color flex items-center gap-1.5">★ 重要不緊急</span>
+                            <button onclick="openTaskModal('q2')" class="text-textMuted hover:text-white text-xs">＋</button>
+                        </div>
+                        <div id="list-q2" class="space-y-2 flex-1"></div>
+                    </div>
+
+                    <!-- Q3 -->
+                    <div class="bg-cardDark border border-sky-500/20 rounded-2xl p-3 flex flex-col min-h-[170px]">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <span class="text-xs font-bold text-q3Color flex items-center gap-1.5">⏰ 不重要又緊急</span>
+                            <button onclick="openTaskModal('q3')" class="text-textMuted hover:text-white text-xs">＋</button>
+                        </div>
+                        <div id="list-q3" class="space-y-2 flex-1"></div>
+                    </div>
+
+                    <!-- Q4 -->
+                    <div class="bg-cardDark border border-borderDark rounded-2xl p-3 flex flex-col min-h-[170px]">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <span class="text-xs font-bold text-q4Color flex items-center gap-1.5">🗑️ 不重要又不緊急</span>
+                            <button onclick="openTaskModal('q4')" class="text-textMuted hover:text-white text-xs">＋</button>
+                        </div>
+                        <div id="list-q4" class="space-y-2 flex-1"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-assets" class="space-y-4 hidden">
+                <!-- Total Assets Card -->
+                <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-textMuted">總資產與試算</h3>
+                        <button onclick="openAssetModal()" class="text-xs text-slate-300 hover:text-white underline font-semibold cursor-pointer">修改資產</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-cardInner p-3.5 rounded-xl border border-borderDark/60 text-center">
+                            <p class="text-[11px] text-textMuted mb-1">總資產</p>
+                            <p class="text-base font-extrabold text-white" id="asset-total-display">$150,000</p>
+                        </div>
+                        <div class="bg-cardInner p-3.5 rounded-xl border border-borderDark/60 text-center">
+                            <p class="text-[11px] text-textMuted mb-1">日均上限 (30天)</p>
+                            <p class="text-base font-extrabold text-white" id="asset-daily-display">$5,000</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Allocation % Customization Card -->
+                <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-textMuted">資金劃分規劃</h3>
+                        <button onclick="openRatioModal()" class="text-xs text-slate-300 hover:text-white underline font-semibold cursor-pointer">調整比例</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- Savings -->
+                        <div class="bg-cardInner p-3 rounded-xl border border-borderDark/60 space-y-1.5">
+                            <div class="flex justify-between text-xs font-medium">
+                                <span class="text-slate-200">儲蓄 (<span id="ratio-savings-pct">50</span>%)</span>
+                                <span class="font-bold text-white" id="ratio-savings-val">$75,000</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div id="bar-savings" class="h-full bg-white rounded-full transition-all duration-300" style="width: 50%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Daily Expense -->
+                        <div class="bg-cardInner p-3 rounded-xl border border-borderDark/60 space-y-1.5">
+                            <div class="flex justify-between text-xs font-medium">
+                                <span class="text-slate-200">日常花費 (<span id="ratio-living-pct">30</span>%)</span>
+                                <span class="font-bold text-white" id="ratio-living-val">$45,000</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div id="bar-living" class="h-full bg-white rounded-full transition-all duration-300" style="width: 30%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Reserve -->
+                        <div class="bg-cardInner p-3 rounded-xl border border-borderDark/60 space-y-1.5">
+                            <div class="flex justify-between text-xs font-medium">
+                                <span class="text-slate-200">預備金 (<span id="ratio-reserve-pct">20</span>%)</span>
+                                <span class="font-bold text-white" id="ratio-reserve-val">$30,000</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div id="bar-reserve" class="h-full bg-white rounded-full transition-all duration-300" style="width: 20%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Records Section -->
+                <div class="bg-cardDark border border-borderDark rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-textMuted">每日收支記錄</h3>
+                        <button onclick="openExpenseModal()" class="bg-white text-black font-bold text-xs px-3.5 py-1.5 rounded-full hover:bg-slate-200 transition">
+                            ＋ 新增記帳
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-center py-1">
+                        <div class="bg-cardInner p-2.5 rounded-xl border border-borderDark/40">
+                            <p class="text-[10px] text-textMuted mb-0.5">今日收入</p>
+                            <p class="text-sm font-bold text-emerald-400" id="rec-today-income">$0</p>
+                        </div>
+                        <div class="bg-cardInner p-2.5 rounded-xl border border-borderDark/40">
+                            <p class="text-[10px] text-textMuted mb-0.5">今日支出</p>
+                            <p class="text-sm font-bold text-red-400" id="rec-today-expense">$180</p>
+                        </div>
+                    </div>
+
+                    <div id="expense-records-list" class="space-y-2 pt-1"></div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-bgDark/95 backdrop-blur-md border-t border-borderDark/80 flex justify-around items-center h-16 z-40 px-6">
+            <button id="nav-btn-reminders" onclick="switchTab('reminders')" class="flex flex-col items-center gap-1 text-white font-bold text-xs transition">
+                <i class="fa-solid fa-table-cells-large text-lg"></i>
+                <span>提醒事項</span>
+            </button>
+            <button id="nav-btn-assets" onclick="switchTab('assets')" class="flex flex-col items-center gap-1 text-textMuted hover:text-slate-200 font-medium text-xs transition">
+                <i class="fa-solid fa-coins text-lg"></i>
+                <span>資產記帳</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- EDIT ASSET MODAL -->
+    <div id="modal-edit-asset" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardDark border border-borderDark rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-borderDark pb-2">
+                <h3 class="text-sm font-bold text-white">修改總資產</h3>
+                <button onclick="closeAssetModal()" class="text-textMuted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-2 text-xs">
+                <label class="block text-textMuted">請輸入您的總資產金額 ($)</label>
+                <input type="number" id="input-edit-total-asset" placeholder="150000" class="w-full bg-cardInner border border-borderDark rounded-xl p-3 text-white focus:outline-none focus:border-slate-400 text-sm font-bold">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeAssetModal()" class="flex-1 py-2.5 bg-cardInner text-textMuted font-bold rounded-xl text-xs">取消</button>
+                <button onclick="saveAssetModal()" class="flex-1 py-2.5 bg-white text-black font-bold rounded-xl text-xs">確定修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADJUST RATIO MODAL -->
+    <div id="modal-edit-ratio" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardDark border border-borderDark rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-borderDark pb-2">
+                <h3 class="text-sm font-bold text-white">調整資金劃分比例 (%)</h3>
+                <button onclick="closeRatioModal()" class="text-textMuted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-textMuted mb-1">儲蓄 (%)</label>
+                    <input type="number" id="input-ratio-savings" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">日常花費 (%)</label>
+                    <input type="number" id="input-ratio-living" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">預備金 (%)</label>
+                    <input type="number" id="input-ratio-reserve" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+                <p id="ratio-sum-warning" class="text-[11px] text-amber-400 font-medium">註：三個項目的百分比加總必須剛好等於 100%</p>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeRatioModal()" class="flex-1 py-2.5 bg-cardInner text-textMuted font-bold rounded-xl text-xs">取消</button>
+                <button onclick="saveRatioModal()" class="flex-1 py-2.5 bg-white text-black font-bold rounded-xl text-xs">儲存比例</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div id="modal-task" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardDark border border-borderDark rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-borderDark pb-2">
+                <h3 class="text-sm font-bold text-white">新增提醒事項</h3>
+                <button onclick="closeTaskModal()" class="text-textMuted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-textMuted mb-1">事項內容</label>
+                    <input type="text" id="input-task-title" placeholder="如：繳交本月電費" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none focus:border-slate-400">
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">四象限分類</label>
+                    <select id="input-task-q" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                        <option value="q1">🔴 重要又緊急</option>
+                        <option value="q2">★ 重要不緊急</option>
+                        <option value="q3">⏰ 不重要又緊急</option>
+                        <option value="q4">🗑️ 不重要又不緊急</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">提醒時間 (前 10 分鐘發出推播)</label>
+                    <input type="time" id="input-task-time" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeTaskModal()" class="flex-1 py-2.5 bg-cardInner text-textMuted font-bold rounded-xl text-xs">取消</button>
+                <button onclick="saveTask()" class="flex-1 py-2.5 bg-white text-black font-bold rounded-xl text-xs">新增</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPENSE MODAL -->
+    <div id="modal-expense" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardDark border border-borderDark rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-borderDark pb-2">
+                <h3 class="text-sm font-bold text-white">新增記帳</h3>
+                <button onclick="closeExpenseModal()" class="text-textMuted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-textMuted mb-1">類型</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btn-type-exp" onclick="setExpType('expense')" class="py-2 rounded-xl font-bold bg-white text-black">支出 (-)</button>
+                        <button type="button" id="btn-type-inc" onclick="setExpType('income')" class="py-2 rounded-xl font-bold bg-cardInner text-textMuted">收入 (+)</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">名稱</label>
+                    <input type="text" id="input-exp-title" placeholder="如：午餐便當" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-textMuted mb-1">金額 ($)</label>
+                    <input type="number" id="input-exp-amount" placeholder="180" class="w-full bg-cardInner border border-borderDark rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeExpenseModal()" class="flex-1 py-2.5 bg-cardInner text-textMuted font-bold rounded-xl text-xs">取消</button>
+                <button onclick="saveExpense()" class="flex-1 py-2.5 bg-white text-black font-bold rounded-xl text-xs">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial state matching exact screenshot data
+        let appData = {
+            totalAssets: 150000,
+            ratios: { savings: 50, living: 30, reserve: 20 },
+            tasks: [
+                { id: 1, title: '繳交本月電費', time: '20:00', q: 'q1', completed: false, reminded: false },
+                { id: 2, title: '規劃下期理財...', time: '', q: 'q2', completed: false, reminded: false },
+                { id: 3, title: '收包裹信件', time: '14:30', q: 'q3', completed: false, reminded: false },
+                { id: 4, title: '整理桌面雜物', time: '', q: 'q4', completed: false, reminded: false }
+            ],
+            records: [
+                { id: 101, title: '午餐便當', amount: 180, type: 'expense', date: new Date().toISOString() }
+            ]
+        };
+
+        let currentExpType = 'expense';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            renderAll();
+            init10MinTimer();
+        });
+
+        function renderAll() {
+            renderDashboard();
+            renderTasks();
+            renderAssets();
+            renderRecords();
+            saveData();
+        }
+
+        function renderDashboard() {
+            const dailyLimit = Math.floor(appData.totalAssets / 30);
+            let todayExpense = 0;
+            const todayStr = new Date().toDateString();
+
+            appData.records.forEach(r => {
+                if (new Date(r.date).toDateString() === todayStr && r.type === 'expense') {
+                    todayExpense += r.amount;
+                }
+            });
+
+            const pendingTasks = appData.tasks.filter(t => !t.completed).length;
+
+            document.getElementById('dash-daily-limit').innerText = `$${dailyLimit.toLocaleString()}`;
+            document.getElementById('dash-today-expense').innerText = `$${todayExpense.toLocaleString()}`;
+            document.getElementById('dash-pending-count').innerText = `${pendingTasks} 項`;
+        }
+
+        function switchTab(tab) {
+            const t1 = document.getElementById('tab-reminders');
+            const t2 = document.getElementById('tab-assets');
+            const btn1 = document.getElementById('nav-btn-reminders');
+            const btn2 = document.getElementById('nav-btn-assets');
+
+            if (tab === 'reminders') {
+                t1.classList.remove('hidden');
+                t2.classList.add('hidden');
+                btn1.className = "flex flex-col items-center gap-1 text-white font-bold text-xs transition";
+                btn2.className = "flex flex-col items-center gap-1 text-textMuted hover:text-slate-200 font-medium text-xs transition";
+            } else {
+                t1.classList.add('hidden');
+                t2.classList.remove('hidden');
+                btn1.className = "flex flex-col items-center gap-1 text-textMuted hover:text-slate-200 font-medium text-xs transition";
+                btn2.className = "flex flex-col items-center gap-1 text-white font-bold text-xs transition";
+            }
+        }
+
+        function renderTasks() {
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                const container = document.getElementById(`list-${q}`);
+                container.innerHTML = '';
+
+                const qTasks = appData.tasks.filter(t => t.q === q);
+                qTasks.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = "bg-cardInner border border-borderDark/60 rounded-xl p-2.5 flex items-start justify-between text-xs gap-2";
+                    div.innerHTML = `
+                        <div class="flex items-start gap-2 min-w-0 flex-1">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})" class="mt-0.5 rounded-md border-borderDark bg-bgDark text-white focus:ring-0">
+                            <div class="min-w-0 flex-1">
+                                <p class="${t.completed ? 'line-through text-textMuted' : 'text-slate-100 font-medium'} truncate">${escapeHtml(t.title)}</p>
+                                ${t.time ? `<p class="text-[10px] text-textMuted mt-0.5"><i class="fa-regular fa-clock"></i> ${t.time}</p>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="deleteTask(${t.id})" class="text-textMuted hover:text-red-400 text-xs px-1">✕</button>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+            renderDashboard();
+        }
+
+        function toggleTask(id) {
+            const task = appData.tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            appData.tasks = appData.tasks.filter(t => t.id !== id);
+            renderTasks();
+        }
+
+        function openTaskModal(q = 'q1') {
+            document.getElementById('input-task-q').value = q;
+            document.getElementById('input-task-title').value = '';
+            document.getElementById('input-task-time').value = '';
+            document.getElementById('modal-task').classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('modal-task').classList.add('hidden');
+        }
+
+        function saveTask() {
+            const title = document.getElementById('input-task-title').value.trim();
+            const q = document.getElementById('input-task-q').value;
+            const time = document.getElementById('input-task-time').value;
+
+            if (!title) {
+                alert('請輸入事項名稱');
+                return;
+            }
+
+            appData.tasks.push({
+                id: Date.now(),
+                title: title,
+                q: q,
+                time: time,
+                completed: false,
+                reminded: false
+            });
+
+            closeTaskModal();
+            renderTasks();
+        }
+
+        function init10MinTimer() {
+            setInterval(() => {
+                const now = new Date();
+                const curMins = now.getHours() * 60 + now.getMinutes();
+
+                appData.tasks.forEach(t => {
+                    if (t.time && !t.completed && !t.reminded) {
+                        const [h, m] = t.time.split(':').map(Number);
+                        const taskMins = h * 60 + m;
+
+                        if (taskMins - curMins === 10) {
+                            t.reminded = true;
+                            triggerNotification(t.title, t.time);
+                            saveData();
+                        }
+                    }
+                });
+            }, 10000);
+        }
+
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(perm => {
+                    if (perm === 'granted') alert('通知已成功開啟！');
+                });
+            } else {
+                alert('請用 Safari/Chrome 開啟以支援事件通知。');
+            }
+        }
+
+        function triggerNotification(title, time) {
+            const msg = `⏰ 事件提醒：「${title}」將於 ${time} (10 分鐘後) 到期！`;
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("懶人包事件提醒", { body: msg });
+            } else {
+                alert(msg);
+            }
+        }
+
+        function renderAssets() {
+            const dailyLimit = Math.floor(appData.totalAssets / 30);
+            document.getElementById('asset-total-display').innerText = `$${appData.totalAssets.toLocaleString()}`;
+            document.getElementById('asset-daily-display').innerText = `$${dailyLimit.toLocaleString()}`;
+
+            const sVal = Math.floor(appData.totalAssets * (appData.ratios.savings / 100));
+            const lVal = Math.floor(appData.totalAssets * (appData.ratios.living / 100));
+            const rVal = Math.floor(appData.totalAssets * (appData.ratios.reserve / 100));
+
+            document.getElementById('ratio-savings-pct').innerText = appData.ratios.savings;
+            document.getElementById('ratio-savings-val').innerText = `$${sVal.toLocaleString()}`;
+            document.getElementById('bar-savings').style.width = `${appData.ratios.savings}%`;
+
+            document.getElementById('ratio-living-pct').innerText = appData.ratios.living;
+            document.getElementById('ratio-living-val').innerText = `$${lVal.toLocaleString()}`;
+            document.getElementById('bar-living').style.width = `${appData.ratios.living}%`;
+
+            document.getElementById('ratio-reserve-pct').innerText = appData.ratios.reserve;
+            document.getElementById('ratio-reserve-val').innerText = `$${rVal.toLocaleString()}`;
+            document.getElementById('bar-reserve').style.width = `${appData.ratios.reserve}%`;
+
+            renderDashboard();
+        }
+
+        /* Modal based Total Assets Edit Functions */
+        function openAssetModal() {
+            document.getElementById('input-edit-total-asset').value = appData.totalAssets;
+            document.getElementById('modal-edit-asset').classList.remove('hidden');
+        }
+
+        function closeAssetModal() {
+            document.getElementById('modal-edit-asset').classList.add('hidden');
+        }
+
+        function saveAssetModal() {
+            const val = parseFloat(document.getElementById('input-edit-total-asset').value);
+            if (!isNaN(val) && val >= 0) {
+                appData.totalAssets = val;
+                renderAssets();
+                closeAssetModal();
+            } else {
+                alert('請輸入有效的數字');
+            }
+        }
+
+        /* Modal based Ratio Adjustment Functions */
+        function openRatioModal() {
+            document.getElementById('input-ratio-savings').value = appData.ratios.savings;
+            document.getElementById('input-ratio-living').value = appData.ratios.living;
+            document.getElementById('input-ratio-reserve').value = appData.ratios.reserve;
+            document.getElementById('modal-edit-ratio').classList.remove('hidden');
+        }
+
+        function closeRatioModal() {
+            document.getElementById('modal-edit-ratio').classList.add('hidden');
+        }
+
+        function saveRatioModal() {
+            const s = parseFloat(document.getElementById('input-ratio-savings').value) || 0;
+            const l = parseFloat(document.getElementById('input-ratio-living').value) || 0;
+            const r = parseFloat(document.getElementById('input-ratio-reserve').value) || 0;
+
+            if (s + l + r === 100) {
+                appData.ratios = { savings: s, living: l, reserve: r };
+                renderAssets();
+                closeRatioModal();
+            } else {
+                alert(`三個項目的比例加總必須剛好等於 100%！（目前加總為 ${s + l + r}%）`);
+            }
+        }
+
+        function openExpenseModal() {
+            document.getElementById('input-exp-title').value = '';
+            document.getElementById('input-exp-amount').value = '';
+            document.getElementById('modal-expense').classList.remove('hidden');
+        }
+
+        function closeExpenseModal() {
+            document.getElementById('modal-expense').classList.add('hidden');
+        }
+
+        function setExpType(type) {
+            currentExpType = type;
+            const btnExp = document.getElementById('btn-type-exp');
+            const btnInc = document.getElementById('btn-type-inc');
+
+            if (type === 'expense') {
+                btnExp.className = "py-2 rounded-xl font-bold bg-white text-black";
+                btnInc.className = "py-2 rounded-xl font-bold bg-cardInner text-textMuted";
+            } else {
+                btnInc.className = "py-2 rounded-xl font-bold bg-white text-black";
+                btnExp.className = "py-2 rounded-xl font-bold bg-cardInner text-textMuted";
+            }
+        }
+
+        function saveExpense() {
+            const title = document.getElementById('input-exp-title').value.trim() || '日常項目';
+            const amount = parseFloat(document.getElementById('input-exp-amount').value);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('請輸入有效金額');
+                return;
+            }
+
+            appData.records.unshift({
+                id: Date.now(),
+                title: title,
+                amount: amount,
+                type: currentExpType,
+                date: new Date().toISOString()
+            });
+
+            if (currentExpType === 'expense') {
+                appData.totalAssets -= amount;
+            } else {
+                appData.totalAssets += amount;
+            }
+
+            closeExpenseModal();
+            renderAssets();
+            renderRecords();
+        }
+
+        function renderRecords() {
+            const list = document.getElementById('expense-records-list');
+            list.innerHTML = '';
+
+            let todayInc = 0;
+            let todayExp = 0;
+            const todayStr = new Date().toDateString();
+
+            appData.records.forEach(r => {
+                const rDate = new Date(r.date).toDateString();
+                if (rDate === todayStr) {
+                    if (r.type === 'expense') todayExp += r.amount;
+                    if (r.type === 'income') todayInc += r.amount;
+                }
+
+                const div = document.createElement('div');
+                div.className = "bg-cardInner border border-borderDark/60 rounded-xl p-2.5 flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-textMuted">${r.type === 'expense' ? '💸' : '💰'}</span>
+                        <span class="font-medium text-slate-200">${escapeHtml(r.title)}</span>
+                    </div>
+                    <span class="font-bold ${r.type === 'expense' ? 'text-red-400' : 'text-emerald-400'}">
+                        ${r.type === 'expense' ? '-' : '+'}$${r.amount.toLocaleString()}
+                    </span>
+                `;
+                list.appendChild(div);
+            });
+
+            document.getElementById('rec-today-income').innerText = `$${todayInc.toLocaleString()}`;
+            document.getElementById('rec-today-expense').innerText = `$${todayExp.toLocaleString()}`;
+            saveData();
+        }
+
+        function saveData() {
+            localStorage.setItem('shawn_lazy_app_exact_v2', JSON.stringify(appData));
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('shawn_lazy_app_exact_v2');
+            if (saved) {
+                try { appData = JSON.parse(saved); } catch(e) {}
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+        }
+    </script>
+</body>
+</html>
